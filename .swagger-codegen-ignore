@@ -1,0 +1,6 @@
+.swagger-codegen
+server/api
+go/README.md
+.swagger-codegen-ignore
+Dockerfile
+main.go

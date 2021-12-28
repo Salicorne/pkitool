@@ -1,0 +1,124 @@
+openapi: 3.0.2
+info:
+  title: Swagger Petstore - OpenAPI 3.0
+  description: |-
+    This is the REST API used by Salicorne/PKITool
+  version: "0.0"
+externalDocs:
+  description: External docs link
+  url: http://swagger.io
+servers:
+  - url: /api
+tags:
+  - name: pki
+    description: Basic PKI management
+  - name: data
+    description: Download keys and certificates
+paths:
+  /pki:
+    get:
+      tags:
+      - pki
+      summary: List existing PKIs
+      operationId: listPKIs
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PkiList'
+    post:
+      tags:
+      - pki
+      summary: Initializes a new PKI
+      operationId: createPKI
+      requestBody:
+        description: New PKI parameters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pki'
+      responses:
+        '200':
+          description: Successful operation
+      
+  /pki/{pki-name}:
+    get:
+      tags: 
+      - pki
+      summary: Get a summary of the whole PKI
+      operationId: getFullPKI
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI to return
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PkiDetails'
+      
+components:
+  schemas:
+    PkiList:
+      type: array
+      items:
+        $ref: '#/components/schemas/PkiInList'
+    PkiInList:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "example-pki"
+        detailsUrl:
+          type: string
+          example: "/pki/example-pki"
+    PkiDetails:
+      type: object
+      properties:
+        serialNumber:
+          type: "string"
+          example: "1640702099667592167"
+        ca: 
+          type: boolean
+        certUrl:
+          type: string
+          example: "/cert/1640702099667592167"
+        keyUrl:
+          type: string
+          example: "/key/1640702099667592167"
+        p12Url:
+          type: string
+          example: "/p12/1640702099667592167"
+        children:
+          type: array
+          items: 
+            $ref: "#/components/schemas/PkiDetails"
+            example:
+              serialNumber: "1640702099667592168"
+              ca: false
+              certUrl:
+                type: string
+                example: "/cert/1640702099667592168"
+              keyUrl:
+                type: string
+                example: "/key/1640702099667592168"
+              p12Url:
+                type: string
+                example: "/p12/1640702099667592168"
+      required:
+      - serialNumber
+      - ca
+    Pki:
+      type: object
+      properties:
+        name:
+          type: "string"
+          example: "example-pki"
+
