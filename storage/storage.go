@@ -37,9 +37,11 @@ func (n *PkiNode) ToPkiDetails(pkiName string) *models.PkiDetails {
 	}
 }
 
+// Main interface implemented by storage engines
 type Storer interface {
 	InitPki(name string, keypair *KeyPair) error
 	AddSubCA(parentSN string, keypair *KeyPair) error
+	AddKeypair(parentSN string, keypair *KeyPair) error
 	GetKeypair(SN string) (*KeyPair, error)
 	GetFullPki() (*PkiNode, error)
 }

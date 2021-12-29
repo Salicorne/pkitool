@@ -102,6 +102,40 @@ func (storer *FilesystemStorer) InitPki(name string, keypair *KeyPair) error {
 	return nil
 }
 
+func (storer *FilesystemStorer) AddKeypair(parentSN string, keypair *KeyPair) error {
+	// Find parent path
+	index, err := storer.getIndex()
+	if err != nil {
+		return fmt.Errorf("failed to get the index, %s", err)
+	}
+
+	parentIndex := index.findChildSN(parentSN)
+	if parentIndex == nil {
+		return fmt.Errorf("could not find parent SN %s", parentSN)
+	}
+
+	// Write the certificate & key
+	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, parentIndex.Path, fmt.Sprintf("%s.crt", keypair.CertSN)), []byte(keypair.CertPem), 0600); err != nil {
+		return fmt.Errorf("writing %s.crt failed, %s", keypair.CertSN, err)
+	}
+
+	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, parentIndex.Path, fmt.Sprintf("%s.key", keypair.CertSN)), []byte(keypair.KeyPem), 0600); err != nil {
+		return fmt.Errorf("writing %s.key failed, %s", keypair.CertSN, err)
+	}
+
+	// Update the index
+	parentIndex.Children = append(parentIndex.Children, &IndexEntry{
+		SerialNumber: keypair.CertSN,
+		CA:           false,
+	})
+
+	if err := storer.writeIndex(index); err != nil {
+		return fmt.Errorf("could not write index file, %s", err)
+	}
+
+	return nil
+}
+
 func (storer *FilesystemStorer) AddSubCA(parentSN string, keypair *KeyPair) error {
 	// Find parent path
 	index, err := storer.getIndex()

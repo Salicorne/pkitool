@@ -35,6 +35,7 @@ echo ""
 echo "Getting full PKI"
 echo ""
 curl -s -XGET $addr/pki/$pkiname | jq .
+subCaRequestUrl=$(curl -s -XGET $addr/pki/$pkiname | jq -r .children[0].subCaRequestUrl)
 
 # Create second subCA
 echo ""
@@ -43,6 +44,21 @@ echo ""
 curl -s -XPOST $addr$subCaRequestUrl \
   -H 'Content-Type: application/json' \
   -d "{\"validityDays\":365,\"DN\":{\"country\":[\"FR\"],\"locality\":[\"Rennes\"],\"organization\":[\"Salicorne\"],\"commonName\":\"$pkiname-subca-2\"}}"
+
+# Get full PKI
+echo ""
+echo "Getting full PKI"
+echo ""
+curl -s -XGET $addr/pki/$pkiname | jq .
+certRequestUrl=$(curl -s -XGET $addr/pki/$pkiname | jq -r .children[0].certRequestUrl)
+
+# Create first cert
+echo ""
+echo "Creating keypair"
+echo ""
+curl -s -XPOST $addr$certRequestUrl \
+  -H 'Content-Type: application/json' \
+  -d "{\"validityDays\":365,\"DN\":{\"country\":[\"FR\"],\"locality\":[\"Rennes\"],\"organization\":[\"Salicorne\"],\"commonName\":\"$pkiname-cert-1\"}}"
 
 # Get full PKI
 echo ""

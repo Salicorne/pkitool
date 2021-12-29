@@ -146,6 +146,60 @@ func CreateSubCa(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCert(w http.ResponseWriter, r *http.Request) {
+	pkiName, ok := mux.Vars(r)["pki-name"]
+	if !ok {
+		response(w, http.StatusBadRequest, "pki-name not provided") // should not happen according to router
+		return
+	}
+
+	parentSN, ok := mux.Vars(r)["serial-number"]
+	if !ok {
+		response(w, http.StatusBadRequest, "serial-number not provided") // should not happen according to router
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		response(w, http.StatusInternalServerError, "Error reading body: %s", err.Error())
+		return
+	}
+	var certRequest models.CertRequest
+	if err := json.Unmarshal(body, &certRequest); err != nil {
+		response(w, http.StatusInternalServerError, "Error parsing body: %s", err.Error())
+		return
+	}
+
+	var storer storage.Storer = &storage.FilesystemStorer{BasePath: pkiName}
+
+	storedParentKeypair, err := storer.GetKeypair(parentSN)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	parentKeypair, err := internal.EcdsaFromStorageKeypair(storedParentKeypair)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	keypair, err := internal.GenerateEcdsaKeypair(util.GetDNFromModel(certRequest.DN), time.Duration(certRequest.ValidityDays*int64(time.Hour)*24), parentKeypair.Certificate, parentKeypair.PrivateKey)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	storableKeypair, err := keypair.ToStorageKeypair()
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := storer.AddKeypair(parentKeypair.Certificate.SerialNumber.String(), storableKeypair); err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }

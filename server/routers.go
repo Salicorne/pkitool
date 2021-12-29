@@ -56,6 +56,27 @@ var routes = Routes{
 	},
 
 	Route{
+		"GetCert",
+		strings.ToUpper("Get"),
+		"/cert/{pki-name}/{serial-number}",
+		GetCert,
+	},
+
+	Route{
+		"GetKey",
+		strings.ToUpper("Get"),
+		"/key/{pki-name}/{serial-number}",
+		GetKey,
+	},
+
+	Route{
+		"GetP12",
+		strings.ToUpper("Get"),
+		"/p12/{pki-name}/{serial-number}",
+		GetP12,
+	},
+
+	Route{
 		"CreateCert",
 		strings.ToUpper("Post"),
 		"/pki/{pki-name}/{serial-number}/cert",

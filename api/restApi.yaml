@@ -112,6 +112,81 @@ paths:
         required: true
         schema:
           type: string
+      requestBody:
+        description: certificate request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertRequest'
+      responses:
+        '200':
+          description: Successful operation
+          
+  /cert/{pki-name}/{serial-number}:
+    get:
+      tags: 
+      - data
+      summary: Download a certificate
+      operationId: getCert
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI
+        required: true
+        schema:
+          type: string
+      - name: serial-number
+        in: path
+        description: serial number of the certificate
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful operation
+          
+  /key/{pki-name}/{serial-number}:
+    get:
+      tags: 
+      - data
+      summary: Download a private key
+      operationId: getKey
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI
+        required: true
+        schema:
+          type: string
+      - name: serial-number
+        in: path
+        description: serial number of the certificate corresponding to the private key
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful operation
+          
+  /p12/{pki-name}/{serial-number}:
+    get:
+      tags: 
+      - data
+      summary: Download a p12 containing a certificate and a key
+      operationId: getP12
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI
+        required: true
+        schema:
+          type: string
+      - name: serial-number
+        in: path
+        description: serial number of the certificate
+        required: true
+        schema:
+          type: string
       responses:
         '200':
           description: Successful operation
@@ -141,13 +216,13 @@ components:
           type: boolean
         certUrl:
           type: string
-          example: "/cert/1640702099667592167"
+          example: "/cert/example-pki/1640702099667592167"
         keyUrl:
           type: string
-          example: "/key/1640702099667592167"
+          example: "/key/example-pki/1640702099667592167"
         p12Url:
           type: string
-          example: "/p12/1640702099667592167"
+          example: "/p12/example-pki/1640702099667592167"
         subCaRequestUrl:
           type: string
           example: "/pki/example-pki/1640702099667592167/ca"
@@ -163,13 +238,13 @@ components:
               ca: false
               certUrl:
                 type: string
-                example: "/cert/1640702099667592168"
+                example: "/cert/example-pki/1640702099667592168"
               keyUrl:
                 type: string
-                example: "/key/1640702099667592168"
+                example: "/key/example-pki/1640702099667592168"
               p12Url:
                 type: string
-                example: "/p12/1640702099667592168"
+                example: "/p12/example-pki/1640702099667592168"
       required:
       - serialNumber
       - ca
@@ -210,6 +285,14 @@ components:
         commonName:
           type: string
     SubCaRequest:
+      type: object
+      properties:
+        DN:
+          $ref: "#/components/schemas/DN"
+        validityDays:
+          type: integer
+          format: int64
+    CertRequest:
       type: object
       properties:
         DN:
