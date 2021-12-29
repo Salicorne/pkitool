@@ -1,8 +1,11 @@
 package server
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
-func response(w http.ResponseWriter, statusCode int, err string) {
+func response(w http.ResponseWriter, statusCode int, err string, args ...interface{}) {
 	w.WriteHeader(statusCode)
-	w.Write([]byte(err))
+	w.Write([]byte(fmt.Sprintf(err, args...)))
 }

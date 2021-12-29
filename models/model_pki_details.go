@@ -20,5 +20,9 @@ type PkiDetails struct {
 
 	P12Url string `json:"p12Url,omitempty"`
 
+	SubCaRequestUrl string `json:"subCaRequestUrl,omitempty"`
+
+	CertRequestUrl string `json:"certRequestUrl,omitempty"`
+
 	Children []PkiDetails `json:"children,omitempty"`
 }

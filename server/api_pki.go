@@ -11,8 +11,13 @@ package server
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"pkitool/internal"
+	"pkitool/models"
 	"pkitool/storage"
+	"pkitool/util"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -30,7 +35,7 @@ func GetFullPKI(w http.ResponseWriter, r *http.Request) {
 		response(w, http.StatusInternalServerError, err.Error())
 	}
 
-	detailsBytes, err := json.Marshal(details)
+	detailsBytes, err := json.Marshal(details.ToPkiDetails(pkiName))
 	if err != nil {
 		response(w, http.StatusInternalServerError, err.Error())
 	}
@@ -46,6 +51,101 @@ func ListPKIs(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreatePKI(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		response(w, http.StatusInternalServerError, "Error reading body: %s", err.Error())
+		return
+	}
+	var pkiRequest models.PkiRequest
+	if err := json.Unmarshal(body, &pkiRequest); err != nil {
+		response(w, http.StatusInternalServerError, "Error parsing body: %s", err.Error())
+		return
+	}
+
+	var storer storage.Storer = &storage.FilesystemStorer{BasePath: pkiRequest.Name}
+
+	// Generate CA
+	ecdsaCa, err := internal.GenerateSelfSignedEcdsaCa(util.GetDNFromModel(pkiRequest.DN), time.Duration(pkiRequest.ValidityDays*int64(time.Hour)*24))
+	if err != nil {
+		response(w, http.StatusInternalServerError, "Error generating self-signed CA: %s", err.Error())
+		return
+	}
+
+	storableCa, err := ecdsaCa.ToStorageKeypair()
+	if err != nil {
+		response(w, http.StatusInternalServerError, "Error converting CA to storable keypair: %s", err.Error())
+		return
+	}
+
+	if err := storer.InitPki(pkiRequest.Name, storableCa); err != nil {
+		response(w, http.StatusInternalServerError, "Error initializing PKI: %s", err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func CreateSubCa(w http.ResponseWriter, r *http.Request) {
+	pkiName, ok := mux.Vars(r)["pki-name"]
+	if !ok {
+		response(w, http.StatusBadRequest, "pki-name not provided") // should not happen according to router
+		return
+	}
+
+	parentSN, ok := mux.Vars(r)["serial-number"]
+	if !ok {
+		response(w, http.StatusBadRequest, "serial-number not provided") // should not happen according to router
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		response(w, http.StatusInternalServerError, "Error reading body: %s", err.Error())
+		return
+	}
+	var subCaRequest models.SubCaRequest
+	if err := json.Unmarshal(body, &subCaRequest); err != nil {
+		response(w, http.StatusInternalServerError, "Error parsing body: %s", err.Error())
+		return
+	}
+
+	var storer storage.Storer = &storage.FilesystemStorer{BasePath: pkiName}
+
+	storedParentKeypair, err := storer.GetKeypair(parentSN)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	parentKeypair, err := internal.EcdsaFromStorageKeypair(storedParentKeypair)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	subCa, err := internal.GenerateEcdsaSubCa(util.GetDNFromModel(subCaRequest.DN), time.Duration(subCaRequest.ValidityDays*int64(time.Hour)*24), parentKeypair.Certificate, parentKeypair.PrivateKey)
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	storableSubCa, err := subCa.ToStorageKeypair()
+	if err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := storer.AddSubCA(parentKeypair.Certificate.SerialNumber.String(), storableSubCa); err != nil {
+		response(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+}
+
+func CreateCert(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 }

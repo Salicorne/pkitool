@@ -56,10 +56,24 @@ var routes = Routes{
 	},
 
 	Route{
+		"CreateCert",
+		strings.ToUpper("Post"),
+		"/pki/{pki-name}/{serial-number}/cert",
+		CreateCert,
+	},
+
+	Route{
 		"CreatePKI",
 		strings.ToUpper("Post"),
 		"/pki",
 		CreatePKI,
+	},
+
+	Route{
+		"CreateSubCa",
+		strings.ToUpper("Post"),
+		"/pki/{pki-name}/{serial-number}/ca",
+		CreateSubCa,
 	},
 
 	Route{

@@ -8,7 +8,9 @@
  */
 package models
 
-type Pki struct {
+type SubCaRequest struct {
 
-	Name string `json:"name,omitempty"`
+	DN *Dn `json:"DN,omitempty"`
+
+	ValidityDays int64 `json:"validityDays,omitempty"`
 }

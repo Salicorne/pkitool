@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"pkitool/models"
 )
 
 type IndexEntry struct {
@@ -20,14 +19,14 @@ type FilesystemStorer struct {
 	BasePath string
 }
 
-func (idx *IndexEntry) toPkiDetails() *models.PkiDetails {
-	children := []models.PkiDetails{}
+func (idx *IndexEntry) toPkiNode() *PkiNode {
+	children := []*PkiNode{}
 
 	for i := range idx.Children {
-		children = append(children, *idx.Children[i].toPkiDetails())
+		children = append(children, idx.Children[i].toPkiNode())
 	}
 
-	return &models.PkiDetails{
+	return &PkiNode{
 		SerialNumber: idx.SerialNumber,
 		Ca:           idx.CA,
 		Children:     children,
@@ -83,12 +82,12 @@ func (storer *FilesystemStorer) InitPki(name string, keypair *KeyPair) error {
 		return fmt.Errorf("creating %s failed, %s", storer.BasePath, err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, "ca.crt"), []byte(keypair.CertPem), 0600); err != nil {
-		return fmt.Errorf("writing ca.crt failed, %s", err)
+	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, fmt.Sprintf("%s.crt", keypair.CertSN)), []byte(keypair.CertPem), 0600); err != nil {
+		return fmt.Errorf("writing %s.crt failed, %s", keypair.CertSN, err)
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, "ca.key"), []byte(keypair.KeyPem), 0600); err != nil {
-		return fmt.Errorf("writing ca.key failed, %s", err)
+	if err := ioutil.WriteFile(filepath.Join(storer.BasePath, fmt.Sprintf("%s.key", keypair.CertSN)), []byte(keypair.KeyPem), 0600); err != nil {
+		return fmt.Errorf("writing %s.key failed, %s", keypair.CertSN, err)
 	}
 
 	if err := storer.writeIndex(&IndexEntry{
@@ -160,13 +159,13 @@ func (storer *FilesystemStorer) GetKeypair(SN string) (*KeyPair, error) {
 		return nil, fmt.Errorf("failed to get SN %s", SN)
 	}
 
-	certPem, err := ioutil.ReadFile(filepath.Join(entry.Path, fmt.Sprintf("%s.crt", SN)))
-	if entry == nil {
+	certPem, err := ioutil.ReadFile(filepath.Join(storer.BasePath, entry.Path, fmt.Sprintf("%s.crt", SN)))
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %s.crt", SN)
 	}
 
-	keyPem, err := ioutil.ReadFile(filepath.Join(entry.Path, fmt.Sprintf("%s.key", SN)))
-	if entry == nil {
+	keyPem, err := ioutil.ReadFile(filepath.Join(storer.BasePath, entry.Path, fmt.Sprintf("%s.key", SN)))
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %s.key", SN)
 	}
 
@@ -177,11 +176,11 @@ func (storer *FilesystemStorer) GetKeypair(SN string) (*KeyPair, error) {
 	}, nil
 }
 
-func (storer *FilesystemStorer) GetFullPki() (*models.PkiDetails, error) {
+func (storer *FilesystemStorer) GetFullPki() (*PkiNode, error) {
 	index, err := storer.getIndex()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the index, %s", err)
 	}
 
-	return index.toPkiDetails(), nil
+	return index.toPkiNode(), nil
 }

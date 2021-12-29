@@ -38,7 +38,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Pki'
+              $ref: '#/components/schemas/PkiRequest'
       responses:
         '200':
           description: Successful operation
@@ -63,6 +63,58 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PkiDetails'
+      
+  /pki/{pki-name}/{serial-number}/ca:
+    post:
+      tags: 
+      - pki
+      summary: Create a subordinate certification authority
+      operationId: createSubCa
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI
+        required: true
+        schema:
+          type: string
+      - name: serial-number
+        in: path
+        description: serial number of the parent certificate authority
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: subordinate CA request
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubCaRequest'
+      responses:
+        '200':
+          description: Successful operation
+      
+  /pki/{pki-name}/{serial-number}/cert:
+    post:
+      tags: 
+      - pki
+      summary: Create a certificate
+      operationId: createCert
+      parameters:
+      - name: pki-name
+        in: path
+        description: name of the PKI
+        required: true
+        schema:
+          type: string
+      - name: serial-number
+        in: path
+        description: serial number of the parent certificate authority
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful operation
       
 components:
   schemas:
@@ -96,6 +148,12 @@ components:
         p12Url:
           type: string
           example: "/p12/1640702099667592167"
+        subCaRequestUrl:
+          type: string
+          example: "/pki/example-pki/1640702099667592167/ca"
+        certRequestUrl:
+          type: string
+          example: "/pki/example-pki/1640702099667592167/cert"
         children:
           type: array
           items: 
@@ -115,10 +173,48 @@ components:
       required:
       - serialNumber
       - ca
-    Pki:
+    PkiRequest:
       type: object
       properties:
         name:
           type: "string"
           example: "example-pki"
+        DN:
+          $ref: "#/components/schemas/DN"
+        validityDays:
+          type: integer
+          format: int64
+    DN:
+      type: object
+      properties:
+        country:
+          type: array
+          items: 
+            type: string
+        state:
+          type: array
+          items: 
+            type: string
+        locality:
+          type: array
+          items: 
+            type: string
+        orgUnit:
+          type: array
+          items: 
+            type: string
+        organization:
+          type: array
+          items: 
+            type: string
+        commonName:
+          type: string
+    SubCaRequest:
+      type: object
+      properties:
+        DN:
+          $ref: "#/components/schemas/DN"
+        validityDays:
+          type: integer
+          format: int64
 
